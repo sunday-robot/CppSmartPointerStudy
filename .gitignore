@@ -1,0 +1,9 @@
+﻿################################################################################
+# この .gitignore ファイルは Microsoft(R) Visual Studio によって自動的に作成されました。
+################################################################################
+
+/.vs/CppSmartPointerStudy
+/CppSmartPointerStudy/x64/Debug
+/x64/Debug
+/CppSmartPointerStudy/CppSmartPointerStudy.vcxproj.user
+/CppSmartPointerStudy/CppSmartPointerStudy.vcxproj.filters

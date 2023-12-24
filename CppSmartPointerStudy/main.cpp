@@ -1,4 +1,5 @@
-﻿#include <iostream>
+﻿#include <string>
+#include <iostream>
 #include <crtdbg.h>
 
 class MyObject {
@@ -18,8 +19,6 @@ public:
 void printMyObject(const MyObject& myObject) {
 	std::cout << "MyObject(name:\"" << myObject.name() << "\")" << std::endl;
 }
-
-#include <string>
 
 void destructorStudy_1() {
 	std::cout << "オブジェクトをスタック上に作成する。オブジェクトはスコープから出る際(関数終了時ではない)に削除される。" << std::endl;
@@ -165,10 +164,11 @@ void uniquePointerStudy() {
 	std::cout << "終了" << std::endl << std::endl;
 }
 
-void sharedPointerStudy() {
+void sharedPointerStudy_1() {
 	std::cout << std::endl << "shared_ptrの学習。" << std::endl;
+	std::cout << "おそらく基本的な使い方。" << std::endl;
 
-	// おそらく基本的な使い方。単純なポインタと異なり、スコープから外れる際に、対象オブジェクトの共有状態をチェックし、自分が唯一の所有者であった場合のみ自動的にdeleteを呼んでくれる。
+	// 単純なポインタと異なり、スコープから外れる際に、対象オブジェクトの共有状態をチェックし、自分が唯一の所有者であった場合のみ自動的にdeleteを呼んでくれる。
 	{
 		std::shared_ptr<MyObject> sp1(new MyObject("unique myobject"));
 		{
@@ -183,7 +183,13 @@ void sharedPointerStudy() {
 		printMyObject(*sp1);
 	}// ここでsp1がスコープから外れる。sp1のみがMyObjectを所有していたので、MyObjectのdeleteが行われる。
 
-	// 少し特殊な使い方。所有権の放棄を明示的に行う。
+	std::cout << "終了" << std::endl << std::endl;
+}
+
+void sharedPointerStudy_2() {
+	std::cout << std::endl << "shared_ptrの学習。" << std::endl;
+	std::cout << "少し特殊な使い方。所有権の放棄を明示的に行う。" << std::endl;
+
 	{
 		std::shared_ptr<MyObject> sp1(new MyObject("unique myobject"));
 		std::shared_ptr<MyObject> sp2;
@@ -204,11 +210,35 @@ void sharedPointerStudy() {
 	std::cout << "終了" << std::endl << std::endl;
 }
 
+void sharedPointerStudy_3() {
+	std::cout << std::endl << "shared_ptrの学習。" << std::endl;
+	std::cout << "誤った使い方。生ポインターを共有してしまう" << std::endl;
+
+	// 単純なポインタと異なり、スコープから外れる際に、対象オブジェクトの共有状態をチェックし、自分が唯一の所有者であった場合のみ自動的にdeleteを呼んでくれる。
+	{
+		auto p = new MyObject("unique myobject");
+		std::shared_ptr<MyObject> sp1(p);
+		{
+			std::shared_ptr<MyObject> sp2(p);	// (誤った使い方)sp1を無視してshared_ptrオブジェクトを生成する。sp1もsp2も自分が唯一の所有者だと勘違いした状態になる。
+			std::cout << "sp1 : ";
+			printMyObject(*sp1);
+			std::cout << "sp2 : ";
+			printMyObject(*sp2);
+		}// ここでsp2がスコープから外れる。sp2は自分が唯一の所有者と認識しているため、MyObjectのdeleteを行ってしまう。
+		//std::cout << "sp1 : ";
+		//printMyObject(*sp1);
+	}// ここでsp1がスコープから外れる。sp1は自分が唯一の所有者と認識ているため、削除済みのMyObjectのdeleteを行おうとしてしまい、例外が発生してしまう。
+
+	std::cout << "終了" << std::endl << std::endl;
+}
+
 int main() {
 	// メモリリーク検出を有効化(もしメモリリークしたままプログラムが終了したら、リークしている旨をデバッグコンソールに出力してくれる）
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	//destructorStudy_6();
-	uniquePointerStudy();
-	sharedPointerStudy();
+	//uniquePointerStudy();
+	//sharedPointerStudy_1();
+	//sharedPointerStudy_2();
+	sharedPointerStudy_3();
 }

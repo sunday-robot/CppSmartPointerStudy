@@ -148,18 +148,27 @@ void destructorStudy_6() {
 	// ポインタの配列なので、要素数が少ないとメモリ使用量もごくわずかなので、リークしてもアプリの動作に影響がほとんどないので、忘れると問題個所を見つけるのが難しい。
 	delete[] heapObjectArray;
 }
-
-void uniquePointerStudy() {
-	std::cout << std::endl << "unique_ptrの学習。ヒープではなくスタックに作成したオブジェクトのように、スコープから外れる際に削除を行ってくれる。" << std::endl;
-
-	// おそらく基本的な使い方。単純なポインタと異なり、スコープから外れる際に自動的にdeleteを呼んでくれる。
+void uniquePointerStudy_1() {
+	std::cout << std::endl << "unique_ptrの学習。"
+		"ヒープではなくスタックに作成したオブジェクトのように、"
+		"スコープから外れる際に指し示すオブジェクトのdeleteを呼んでくれる。"
+		<< std::endl;
 	{
 		std::unique_ptr<MyObject> up1(new MyObject("1"));
-	}
+	}// ここでup1がスコープ外になるので、up1が指すMyObjectのdeleteも行われる。
 
-	// reset()で同じunique_ptr変数を使いまわすことができる。(あまり使わない?)
-	std::unique_ptr<MyObject> up2(new MyObject("old2"));
-	up2.reset(new MyObject("new2"));	// 新しいオブジェクトで置き換える。この時古いオブジェクトがリークすることはなく、きちんと古いオブジェクトのdeleteも呼んでくれる。
+	std::cout << "終了" << std::endl << std::endl;
+}
+
+void uniquePointerStudy_2() {
+	std::cout << std::endl << "unique_ptrの学習。"
+		"reset()の使用例。(あまりreset()は使用しないかも。)"
+		"reset()で新しいオブジェクトのポインターをセットすると、それまでのオブジェクトのdeleteも呼んでくれる。"
+		<< std::endl;
+	{
+		std::unique_ptr<MyObject> up2(new MyObject("old2"));
+		up2.reset(new MyObject("new2"));	// 新しいオブジェクトで置き換える。この時古いオブジェクトがリークすることはなく、きちんと古いオブジェクトのdeleteも呼んでくれる。
+	}
 
 	std::cout << "終了" << std::endl << std::endl;
 }
@@ -214,21 +223,29 @@ void sharedPointerStudy_3() {
 	std::cout << std::endl << "shared_ptrの学習。" << std::endl;
 	std::cout << "誤った使い方。生ポインターを共有してしまう" << std::endl;
 
-	// 単純なポインタと異なり、スコープから外れる際に、対象オブジェクトの共有状態をチェックし、自分が唯一の所有者であった場合のみ自動的にdeleteを呼んでくれる。
-	{
-		auto p = new MyObject("unique myobject");
-		std::shared_ptr<MyObject> sp1(p);
+	// 一応「/Eha」というC++コンパイルオプションをして指定することで、nullポインターアクセスなどの例外（構造化例外というらしい）をcatchでとらえられるとのこと。
+	// ただし、以下の問題があるので、通常のアプリで使うものではなさそう。
+	// ・どのような例外が発生したのかはわからない(!!!)
+	// ・速度上のペナルティもあるらしい(多分例外発生時ではなく例外が発生しない場合も遅くなるのだと思う)
+	// ・リリースビルドだと/Ehaは無効?(デバッガで実行してもキャッチできなかった）
+	try {
+		// 単純なポインタと異なり、スコープから外れる際に、対象オブジェクトの共有状態をチェックし、自分が唯一の所有者であった場合のみ自動的にdeleteを呼んでくれる。
 		{
-			std::shared_ptr<MyObject> sp2(p);	// (誤った使い方)sp1を無視してshared_ptrオブジェクトを生成する。sp1もsp2も自分が唯一の所有者だと勘違いした状態になる。
-			std::cout << "sp1 : ";
-			printMyObject(*sp1);
-			std::cout << "sp2 : ";
-			printMyObject(*sp2);
-		}// ここでsp2がスコープから外れる。sp2は自分が唯一の所有者と認識しているため、MyObjectのdeleteを行ってしまう。
-		//std::cout << "sp1 : ";
-		//printMyObject(*sp1);
-	}// ここでsp1がスコープから外れる。sp1は自分が唯一の所有者と認識ているため、削除済みのMyObjectのdeleteを行おうとしてしまい、例外が発生してしまう。
-
+			auto p = new MyObject("unique myobject");
+			std::shared_ptr<MyObject> sp1(p);
+			{
+				std::shared_ptr<MyObject> sp2(p);	// (誤った使い方)sp1を無視してshared_ptrオブジェクトを生成する。sp1もsp2も自分が唯一の所有者だと勘違いした状態になる。
+				std::cout << "sp1 : ";
+				printMyObject(*sp1);
+				std::cout << "sp2 : ";
+				printMyObject(*sp2);
+			}// ここでsp2がスコープから外れる。sp2は自分が唯一の所有者と認識しているため、MyObjectのdeleteを行ってしまう。
+			//std::cout << "sp1 : ";
+			//printMyObject(*sp1);
+		}// ここでsp1がスコープから外れる。sp1は自分が唯一の所有者と認識ているため、削除済みのMyObjectのdeleteを行おうとしてしまい、例外が発生してしまう。
+	} catch (...) {
+		std::cout << "構造化例外発生。" << std::endl;
+	}
 	std::cout << "終了" << std::endl << std::endl;
 }
 
@@ -237,8 +254,9 @@ int main() {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	//destructorStudy_6();
-	//uniquePointerStudy();
+	uniquePointerStudy_1();
+	uniquePointerStudy_2();
 	//sharedPointerStudy_1();
 	//sharedPointerStudy_2();
-	sharedPointerStudy_3();
+	//sharedPointerStudy_3();
 }
